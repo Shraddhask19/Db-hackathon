@@ -22,7 +22,9 @@ public class ProjectService {
     private final Map<String, Project> projects = new ConcurrentHashMap<>();
 
     public Project createProject(CreateProjectRequest request) {
-        DatabaseDialect dialect = DatabaseDialect.fromString(request.getTargetDialect());
+        String dialectStr = (request.getTargetDialect() != null && !request.getTargetDialect().isBlank())
+                ? request.getTargetDialect() : "POSTGRESQL";
+        DatabaseDialect dialect = DatabaseDialect.fromString(dialectStr);
         String id = "proj-" + UUID.randomUUID().toString().substring(0, 8);
         Instant now = Instant.now();
 

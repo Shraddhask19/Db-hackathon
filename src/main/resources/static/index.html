@@ -802,7 +802,7 @@
         async function createNewProjectPrompt() {
             const name = prompt("Enter Project Name:", "My Banking App");
             if (!name) return;
-            const dialect = prompt("Select Target Dialect (POSTGRESQL, MYSQL, ORACLE, SNOWFLAKE):", "POSTGRESQL");
+            const dialect = "POSTGRESQL";
 
             try {
                 const res = await fetch(`${API_BASE}/projects`, {
