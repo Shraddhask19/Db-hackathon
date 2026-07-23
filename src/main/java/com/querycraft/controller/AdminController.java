@@ -1,5 +1,6 @@
 package com.querycraft.controller;
 
+import com.querycraft.domain.Project;
 import com.querycraft.domain.dto.UserSummary;
 import com.querycraft.service.AuthService;
 import com.querycraft.service.ProjectService;
@@ -42,6 +43,16 @@ public class AdminController {
         metrics.put("serverTime", Instant.now().toString());
         metrics.put("status", "HEALTHY");
         return ResponseEntity.ok(metrics);
+    }
+
+    @PostMapping("/projects/{projectId}/assign-user")
+    @Operation(summary = "Assign User Access to Project (Admin Only)", description = "Grants access permissions for a specific user to view and query a project")
+    public ResponseEntity<Project> assignUserToProject(
+            @PathVariable String projectId,
+            @RequestBody Map<String, String> body) {
+        String username = body.get("username");
+        Project project = projectService.assignUserToProject(projectId, username);
+        return ResponseEntity.ok(project);
     }
 
     @DeleteMapping("/projects/{projectId}")

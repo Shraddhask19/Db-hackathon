@@ -37,8 +37,10 @@ public class ProjectController {
     }
 
     @GetMapping
-    @Operation(summary = "List all projects", description = "List all active onboarded projects")
-    public ResponseEntity<List<Project>> listProjects() {
-        return ResponseEntity.ok(projectService.listProjects());
+    @Operation(summary = "List all projects", description = "List active onboarded projects accessible to the caller")
+    public ResponseEntity<List<Project>> listProjects(
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String role) {
+        return ResponseEntity.ok(projectService.listProjectsForUser(username, role));
     }
 }

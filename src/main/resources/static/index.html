@@ -592,6 +592,12 @@
                 Loading metrics...
             </div>
 
+            <div style="font-size:0.9rem; margin-bottom:8px; color:var(--accent-purple);"><b>Grant User Access to Active Project</b></div>
+            <div style="display:flex; gap:8px; margin-bottom:16px;">
+                <input type="text" id="assignUsername" placeholder="Enter username (e.g. user)" style="margin-bottom:0; flex:1;">
+                <button onclick="assignUserAccess()" style="width:130px; font-size:0.8rem;">Grant Access</button>
+            </div>
+
             <button class="secondary" onclick="closeAdminModal()">Close Panel</button>
         </div>
     </div>
@@ -750,15 +756,38 @@
             }
         }
 
+        async function assignUserAccess() {
+            const username = document.getElementById('assignUsername').value.trim();
+            if (!username) return alert("Please enter a username");
+            if (!currentProjectId) return alert("Please select an active project first");
+
+            try {
+                const res = await fetch(`${API_BASE}/admin/projects/${currentProjectId}/assign-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                if (!res.ok) throw new Error("Failed to grant project access");
+                alert(`Access Granted! User '${username}' can now access project '${currentProjectId}'`);
+                document.getElementById('assignUsername').value = '';
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
         async function loadProjects() {
             try {
-                const res = await fetch(`${API_BASE}/projects`);
+                let url = `${API_BASE}/projects`;
+                if (currentUser && currentUser.username) {
+                    url += `?username=${encodeURIComponent(currentUser.username)}&role=${encodeURIComponent(currentUser.role)}`;
+                }
+                const res = await fetch(url);
                 const projects = await res.json();
                 const select = document.getElementById('projectSelect');
                 select.innerHTML = '';
 
                 if (projects.length === 0) {
-                    select.innerHTML = '<option value="">No projects found. Create one!</option>';
+                    select.innerHTML = '<option value="">No projects assigned to you</option>';
                     return;
                 }
 

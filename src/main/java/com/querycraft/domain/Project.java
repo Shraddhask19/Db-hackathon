@@ -7,7 +7,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Data
 @Builder
@@ -18,8 +20,13 @@ public class Project {
     private String name;
     private DatabaseDialect targetDialect;
     private String description;
+    
     @Builder.Default
     private List<String> ingestedFiles = new ArrayList<>();
+
+    @Builder.Default
+    private Set<String> assignedUsernames = new HashSet<>();
+
     private Instant createdAt;
     private Instant updatedAt;
 }

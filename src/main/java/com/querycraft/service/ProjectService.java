@@ -2,6 +2,7 @@ package com.querycraft.service;
 
 import com.querycraft.domain.DatabaseDialect;
 import com.querycraft.domain.Project;
+import com.querycraft.domain.Role;
 import com.querycraft.domain.dto.CreateProjectRequest;
 import com.querycraft.exception.ProjectNotFoundException;
 import org.slf4j.Logger;
@@ -9,11 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjectService {
@@ -34,6 +33,7 @@ public class ProjectService {
                 .targetDialect(dialect)
                 .description(request.getDescription())
                 .ingestedFiles(new ArrayList<>())
+                .assignedUsernames(new HashSet<>())
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -53,6 +53,28 @@ public class ProjectService {
 
     public List<Project> listProjects() {
         return new ArrayList<>(projects.values());
+    }
+
+    public List<Project> listProjectsForUser(String username, String roleStr) {
+        if (username == null || username.isBlank() || Role.ROLE_ADMIN.name().equalsIgnoreCase(roleStr)) {
+            return listProjects();
+        }
+
+        String sanitizedUser = username.trim().toLowerCase(Locale.ROOT);
+        return projects.values().stream()
+                .filter(p -> p.getAssignedUsernames().contains(sanitizedUser))
+                .collect(Collectors.toList());
+    }
+
+    public Project assignUserToProject(String projectId, String username) {
+        Project project = getProject(projectId);
+        if (username != null && !username.isBlank()) {
+            String sanitizedUser = username.trim().toLowerCase(Locale.ROOT);
+            project.getAssignedUsernames().add(sanitizedUser);
+            project.setUpdatedAt(Instant.now());
+            log.info("Assigned user [{}] access to Project [{}]", sanitizedUser, projectId);
+        }
+        return project;
     }
 
     public void registerIngestedFile(String projectId, String fileName) {
