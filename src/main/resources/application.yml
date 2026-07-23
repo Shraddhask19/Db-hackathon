@@ -1,0 +1,60 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: querycraft-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:querycraftdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.h2.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  ai:
+    vertex:
+      ai:
+        gemini:
+          project-id: ${VERTEX_AI_PROJECT_ID:querycraft-ai-project}
+          location: ${VERTEX_AI_LOCATION:us-central1}
+          model: ${VERTEX_AI_MODEL:gemini-1.5-flash}
+          temperature: 0.1
+
+querycraft:
+  security:
+    encryption-key: ${ENCRYPTION_KEY:QueryCraftSecretKey32BytesLong!!}
+  gcs:
+    bucket-name: ${GCS_BUCKET_NAME:querycraft-schema-documents}
+    enabled: ${GCS_ENABLED:true}
+  integrations:
+    github:
+      default-token: ${GITHUB_TOKEN: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}
+    confluence:
+      default-domain: ${CONFLUENCE_DOMAIN:}
+      default-email: ${CONFLUENCE_EMAIL:}
+      default-api-token: ${CONFLUENCE_API_TOKEN:}
+  vectorstore:
+    storage-path: ${VECTOR_STORE_PATH:./data/vector_store.json}
+  ai:
+    mock-fallback: ${AI_MOCK_FALLBACK:true} # Enables deterministic mock responses if API keys are absent
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+logging:
+  level:
+    root: INFO
+    com.querycraft: DEBUG
+    org.springframework.ai: INFO
