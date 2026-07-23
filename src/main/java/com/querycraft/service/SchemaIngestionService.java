@@ -1,7 +1,9 @@
 package com.querycraft.service;
 
+import com.querycraft.domain.DatabaseDialect;
 import com.querycraft.domain.Project;
 import com.querycraft.domain.dto.IngestionResponse;
+import com.querycraft.parser.SchemaDialectDetector;
 import com.querycraft.parser.SchemaParser;
 import com.querycraft.parser.SchemaParserFactory;
 import org.slf4j.Logger;
@@ -29,6 +31,7 @@ public class SchemaIngestionService {
     private final ProjectService projectService;
     private final SchemaParserFactory parserFactory;
     private final PostgresDocumentStorageService postgresStorageService;
+    private final SchemaDialectDetector dialectDetector;
     private final VectorStore vectorStore;
     private final TokenTextSplitter textSplitter;
 
@@ -38,11 +41,13 @@ public class SchemaIngestionService {
     public SchemaIngestionService(ProjectService projectService,
                                   SchemaParserFactory parserFactory,
                                   PostgresDocumentStorageService postgresStorageService,
+                                  SchemaDialectDetector dialectDetector,
                                   VectorStore vectorStore,
                                   TokenTextSplitter textSplitter) {
         this.projectService = projectService;
         this.parserFactory = parserFactory;
         this.postgresStorageService = postgresStorageService;
+        this.dialectDetector = dialectDetector;
         this.vectorStore = vectorStore;
         this.textSplitter = textSplitter;
     }
@@ -65,11 +70,16 @@ public class SchemaIngestionService {
             // Step 2: Parse schema text
             String extractedSchemaText = parser.parse(new java.io.ByteArrayInputStream(fileBytes), fileName);
 
-            // Step 3: Chunk extracted text using TokenTextSplitter
+            // Step 3: Auto-Detect database dialect directly from uploaded schema file
+            DatabaseDialect detectedDialect = dialectDetector.detectDialect(extractedSchemaText, fileName);
+            project.setTargetDialect(detectedDialect);
+            log.info("Dynamically set target dialect for Project [{}] to [{}] from uploaded file: '{}'", projectId, detectedDialect, fileName);
+
+            // Step 4: Chunk extracted text using TokenTextSplitter
             Document rawDoc = new Document(extractedSchemaText);
             List<Document> chunks = textSplitter.split(List.of(rawDoc));
 
-            // Step 4: Tag each document chunk with metadata: projectId, targetDialect, fileName, fileType, docUri
+            // Step 5: Tag each document chunk with metadata: projectId, targetDialect, fileName, fileType, docUri
             for (Document chunk : chunks) {
                 Map<String, Object> metadata = new HashMap<>(chunk.getMetadata());
                 metadata.put("projectId", projectId);
@@ -83,7 +93,7 @@ public class SchemaIngestionService {
                 chunk.getMetadata().putAll(metadata);
             }
 
-            // Step 5: Write metadata-enriched document chunks into VectorStore
+            // Step 6: Write metadata-enriched document chunks into VectorStore
             vectorStore.add(chunks);
 
             // Save SimpleVectorStore state
@@ -109,7 +119,7 @@ public class SchemaIngestionService {
                     .fileType(parser.getFileType())
                     .gcsUri(docUri)
                     .chunksIngested(chunks.size())
-                    .message("Successfully stored in PostgreSQL (" + docUri + "), embedded, and indexed " + chunks.size() + " schema chunks tagged with metadata 'projectId'=" + projectId)
+                    .message("Successfully stored in PostgreSQL (" + docUri + "), detected dialect [" + detectedDialect + "], embedded, and indexed " + chunks.size() + " schema chunks tagged with metadata 'projectId'=" + projectId)
                     .timestamp(Instant.now())
                     .build();
 

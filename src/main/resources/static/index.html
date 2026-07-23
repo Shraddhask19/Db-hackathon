@@ -505,7 +505,7 @@
             <div class="panel" style="flex: 1; display: flex; flex-direction: column;">
                 <div class="chat-header">
                     <h2>AI Text-to-SQL Multi-Turn Chat Agent</h2>
-                    <span class="project-badge" id="activeDialectBadge">Dialect: POSTGRESQL</span>
+                    <span class="project-badge" id="activeDialectBadge">QueryCraft Workspace</span>
                 </div>
 
                 <!-- Chat Log -->
@@ -787,9 +787,9 @@
             try {
                 const res = await fetch(`${API_BASE}/projects/${currentProjectId}`);
                 const project = await res.json();
-                document.getElementById('activeDialectBadge').innerText = `Dialect: ${project.targetDialect}`;
+                document.getElementById('activeDialectBadge').innerText = project.name || "QueryCraft Workspace";
                 document.getElementById('projectInfo').innerHTML = `
-                    <b>ID:</b> ${project.projectId}<br>
+                    <b>Project ID:</b> ${project.projectId}<br>
                     <b>Files Ingested:</b> ${project.ingestedFiles ? project.ingestedFiles.length : 0} files
                 `;
                 const lastUpdated = project.updatedAt || project.createdAt;
@@ -802,16 +802,15 @@
         async function createNewProjectPrompt() {
             const name = prompt("Enter Project Name:", "My Banking App");
             if (!name) return;
-            const dialect = "POSTGRESQL";
 
             try {
                 const res = await fetch(`${API_BASE}/projects`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, targetDialect: dialect, description: "Created via QueryCraft Studio UI" })
+                    body: JSON.stringify({ name: name.trim() })
                 });
                 const project = await res.json();
-                alert(`Project Created: ${project.projectId}`);
+                alert(`Project Created: ${project.name} (${project.projectId})`);
                 currentProjectId = project.projectId;
                 loadProjects();
             } catch (err) {

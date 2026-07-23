@@ -4,6 +4,12 @@ import lombok.Getter;
 
 @Getter
 public enum DatabaseDialect {
+    ANSI_SQL(
+            "Auto-Detected ANSI SQL",
+            "\"identifier\"",
+            "LIMIT n OFFSET m",
+            "Use standard ANSI SQL types (VARCHAR, INTEGER, TIMESTAMP, BOOLEAN). Automatically inferred from uploaded schema documents."
+    ),
     POSTGRESQL(
             "PostgreSQL",
             "\"identifier\"",
@@ -43,7 +49,7 @@ public enum DatabaseDialect {
 
     public static DatabaseDialect fromString(String dialectStr) {
         if (dialectStr == null || dialectStr.isBlank()) {
-            throw new IllegalArgumentException("Database dialect must not be null or empty");
+            return ANSI_SQL;
         }
         for (DatabaseDialect dialect : values()) {
             if (dialect.name().equalsIgnoreCase(dialectStr.trim()) ||
@@ -51,6 +57,6 @@ public enum DatabaseDialect {
                 return dialect;
             }
         }
-        throw new IllegalArgumentException("Unsupported database dialect: " + dialectStr + ". Supported dialects: POSTGRESQL, MYSQL, ORACLE, SNOWFLAKE");
+        return ANSI_SQL;
     }
 }
