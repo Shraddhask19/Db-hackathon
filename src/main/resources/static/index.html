@@ -75,25 +75,29 @@
             -webkit-text-fill-color: transparent;
         }
 
-        .status-pill {
+        .header-actions {
             display: flex;
             align-items: center;
-            gap: 8px;
-            background: rgba(52, 211, 153, 0.15);
-            border: 1px solid rgba(52, 211, 153, 0.3);
-            color: var(--accent-green);
+            gap: 14px;
+        }
+
+        .user-badge {
+            background: rgba(129, 140, 248, 0.15);
+            border: 1px solid rgba(129, 140, 248, 0.3);
+            color: var(--accent-purple);
             padding: 6px 14px;
             border-radius: 9999px;
             font-size: 0.85rem;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--accent-green);
-            border-radius: 50%;
-            box-shadow: 0 0 8px var(--accent-green);
+        .badge-admin {
+            background: rgba(248, 113, 113, 0.15);
+            border-color: rgba(248, 113, 113, 0.3);
+            color: var(--accent-red);
         }
 
         /* Layout */
@@ -166,7 +170,7 @@
             border: none;
             color: white;
             font-weight: 600;
-            padding: 12px;
+            padding: 10px 14px;
             border-radius: 12px;
             cursor: pointer;
             transition: all 0.2s;
@@ -185,6 +189,10 @@
         button.secondary {
             background: rgba(55, 65, 81, 0.8);
             border: 1px solid var(--border-color);
+        }
+
+        button.admin-btn {
+            background: linear-gradient(135deg, #f87171, #dc2626);
         }
 
         /* Tabbed Sub-Panels */
@@ -319,7 +327,7 @@
             font-weight: 600;
         }
 
-        .gcs-link {
+        .doc-link {
             display: inline-block;
             margin-top: 8px;
             font-size: 0.75rem;
@@ -327,9 +335,62 @@
             text-decoration: none;
         }
 
-        .gcs-link:hover { text-decoration: underline; }
+        .doc-link:hover { text-decoration: underline; }
 
-        /* Suggestions Pills */
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-card {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 32px;
+            width: 420px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .preset-pills {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .preset-pill {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .preset-pill:hover {
+            border-color: var(--accent-purple);
+            color: white;
+        }
+
         .suggestions {
             display: flex;
             gap: 8px;
@@ -359,13 +420,8 @@
             gap: 12px;
         }
 
-        .input-bar input {
-            margin-bottom: 0;
-        }
-
-        .input-bar button {
-            width: 140px;
-        }
+        .input-bar input { margin-bottom: 0; }
+        .input-bar button { width: 140px; }
     </style>
 </head>
 <body>
@@ -375,9 +431,12 @@
             <div class="brand-logo">QC</div>
             <div class="brand-title">QueryCraft AI Studio</div>
         </div>
-        <div class="status-pill">
-            <div class="status-dot"></div>
-            Backend Live :8080
+        <div class="header-actions">
+            <div class="user-badge" id="userBadge">
+                <span>Not Logged In</span>
+            </div>
+            <button class="admin-btn" id="adminPanelBtn" style="display:none; width:auto; padding:6px 14px; font-size:0.8rem;" onclick="openAdminPanel()">Admin Panel</button>
+            <button class="secondary" id="authBtn" style="width:auto; padding:6px 14px; font-size:0.8rem;" onclick="openAuthModal()">Login / Register</button>
         </div>
     </header>
 
@@ -389,7 +448,7 @@
             <div class="panel">
                 <div class="panel-title">
                     <span>Active Project</span>
-                    <button class="secondary" style="width: auto; padding: 4px 10px; font-size: 0.75rem;" onclick="createNewProjectPrompt()">+ New</button>
+                    <button class="secondary" id="newProjectBtn" style="width: auto; padding: 4px 10px; font-size: 0.75rem; display: none;" onclick="createNewProjectPrompt()">+ New</button>
                 </div>
                 <select id="projectSelect" onchange="onProjectChange()">
                     <option value="">Loading projects...</option>
@@ -399,9 +458,12 @@
                 </div>
             </div>
 
-            <!-- Schema Onboarding Panel -->
-            <div class="panel">
+            <!-- Schema Onboarding Panel (Admin Only) -->
+            <div class="panel" id="schemaOnboardingPanel">
                 <div class="panel-title">Onboard Schema</div>
+                <div id="lastUpdatedBadge" style="font-size: 0.78rem; color: var(--accent-purple); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                    📅 Last Updated: <span id="lastUpdatedVal">Never</span>
+                </div>
 
                 <div class="tabs">
                     <button class="tab-btn active" onclick="switchTab('tab-github')">GitHub Repo</button>
@@ -455,8 +517,8 @@
 
                 <!-- Sample Prompt Pills -->
                 <div class="suggestions">
+                    <div class="pill" onclick="useSuggestion('Show customer profile details alongside active loan balances')">Customer & Loan Balances</div>
                     <div class="pill" onclick="useSuggestion('Show me top 10 active customers ordered by creation date')">Top 10 Active Customers</div>
-                    <div class="pill" onclick="useSuggestion('Show total loan balances and credit limits per customer')">Loan & Credit Balances</div>
                     <div class="pill" onclick="useSuggestion('Find completed payments grouped by payment method')">Completed Payments</div>
                     <div class="pill" onclick="useSuggestion('Drop all tables in public schema')">Test AST Guard (Drop Block)</div>
                 </div>
@@ -470,14 +532,223 @@
         </div>
     </div>
 
+    <!-- Auth Modal (Login / Register) -->
+    <div class="modal-overlay" id="authModal" style="display:none;">
+        <div class="modal-card">
+            <div class="modal-title">QueryCraft Authentication</div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" id="loginTabBtn" onclick="switchAuthTab('login')">Login</button>
+                <button class="tab-btn" id="registerTabBtn" onclick="switchAuthTab('register')">Register</button>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="preset-pills">
+                <div class="preset-pill" onclick="fillAuthPreset('admin', 'admin123')">🔑 Admin (admin/admin123)</div>
+                <div class="preset-pill" onclick="fillAuthPreset('user', 'user123')">👤 User (user/user123)</div>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm">
+                <label>Username</label>
+                <input type="text" id="loginUsername" placeholder="admin or user">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="••••••••">
+                <button onclick="performLogin()">Sign In</button>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" style="display:none;">
+                <label>Username</label>
+                <input type="text" id="regUsername" placeholder="johndoe">
+                <label>Email</label>
+                <input type="email" id="regEmail" placeholder="john@company.com">
+                <label>Password</label>
+                <input type="password" id="regPassword" placeholder="••••••••">
+                <label>Account Role</label>
+                <select id="regRole">
+                    <option value="ROLE_USER">User (Standard Access)</option>
+                    <option value="ROLE_ADMIN">Admin (Full Access)</option>
+                </select>
+                <button onclick="performRegister()">Create Account</button>
+            </div>
+
+            <button class="secondary" style="margin-top:12px;" onclick="closeAuthModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div class="modal-overlay" id="adminModal" style="display:none;">
+        <div class="modal-card" style="width: 580px;">
+            <div class="modal-title">Admin Management Panel</div>
+            
+            <div style="font-size:0.9rem; margin-bottom:14px; color:var(--accent-blue);"><b>System User Accounts</b></div>
+            <div id="adminUserList" style="max-height:200px; overflow-y:auto; background:rgba(0,0,0,0.3); padding:10px; border-radius:10px; font-size:0.82rem; margin-bottom:16px;">
+                Loading users...
+            </div>
+
+            <div style="font-size:0.9rem; margin-bottom:14px; color:var(--accent-green);"><b>System Metrics</b></div>
+            <div id="adminMetrics" style="background:rgba(0,0,0,0.3); padding:10px; border-radius:10px; font-size:0.82rem; margin-bottom:16px;">
+                Loading metrics...
+            </div>
+
+            <button class="secondary" onclick="closeAdminModal()">Close Panel</button>
+        </div>
+    </div>
+
     <script>
         const API_BASE = '/api/v1';
-        let currentProjectId = 'proj-88a0ea0b';
+        let currentProjectId = 'proj-6fc3150c';
         let currentSessionId = 'session-studio-' + Math.floor(Math.random() * 10000);
+        let currentUser = null;
 
         window.onload = function() {
             loadProjects();
+            // Check local storage for session
+            const savedUser = localStorage.getItem('qc_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                updateUserBadge();
+            } else {
+                openAuthModal(); // Open login modal on first visit
+            }
         };
+
+        function openAuthModal() { document.getElementById('authModal').style.display = 'flex'; }
+        function closeAuthModal() { document.getElementById('authModal').style.display = 'none'; }
+        function openAdminPanel() {
+            document.getElementById('adminModal').style.display = 'flex';
+            loadAdminData();
+        }
+        function closeAdminModal() { document.getElementById('adminModal').style.display = 'none'; }
+
+        function switchAuthTab(tab) {
+            document.getElementById('loginTabBtn').classList.toggle('active', tab === 'login');
+            document.getElementById('registerTabBtn').classList.toggle('active', tab === 'register');
+            document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+            document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+        }
+
+        function fillAuthPreset(user, pass) {
+            document.getElementById('loginUsername').value = user;
+            document.getElementById('loginPassword').value = pass;
+        }
+
+        async function performLogin() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            if (!username || !password) return alert("Please enter username and password");
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!res.ok) throw new Error("Invalid username or password");
+                const data = await res.json();
+                currentUser = data;
+                localStorage.setItem('qc_user', JSON.stringify(data));
+                updateUserBadge();
+                closeAuthModal();
+                alert(`Welcome back, ${data.username}! Role: ${data.role}`);
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function performRegister() {
+            const username = document.getElementById('regUsername').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const role = document.getElementById('regRole').value;
+
+            if (!username || !email || !password) return alert("Please fill all fields");
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password, role })
+                });
+
+                if (!res.ok) throw new Error("Registration failed");
+                const data = await res.json();
+                currentUser = data;
+                localStorage.setItem('qc_user', JSON.stringify(data));
+                updateUserBadge();
+                closeAuthModal();
+                alert(`Account created! Welcome, ${data.username} (${data.role})`);
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        function formatDateTime(isoStr) {
+            if (!isoStr) return "Never";
+            try {
+                const d = new Date(isoStr);
+                return d.toLocaleString();
+            } catch (e) { return isoStr; }
+        }
+
+        function updateUserBadge() {
+            const badge = document.getElementById('userBadge');
+            const authBtn = document.getElementById('authBtn');
+            const adminBtn = document.getElementById('adminPanelBtn');
+            const newProjBtn = document.getElementById('newProjectBtn');
+            const schemaPanel = document.getElementById('schemaOnboardingPanel');
+
+            if (currentUser) {
+                const isAdmin = currentUser.role === 'ROLE_ADMIN';
+                badge.className = `user-badge ${isAdmin ? 'badge-admin' : ''}`;
+                badge.innerHTML = `👤 ${currentUser.username} (${currentUser.role})`;
+                authBtn.innerText = 'Logout';
+                authBtn.onclick = logout;
+                adminBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+                if (newProjBtn) newProjBtn.style.display = isAdmin ? 'inline-block' : 'none';
+                if (schemaPanel) schemaPanel.style.display = isAdmin ? 'block' : 'none';
+            } else {
+                badge.className = 'user-badge';
+                badge.innerHTML = `<span>Not Logged In</span>`;
+                authBtn.innerText = 'Login / Register';
+                authBtn.onclick = openAuthModal;
+                adminBtn.style.display = 'none';
+                if (newProjBtn) newProjBtn.style.display = 'none';
+                if (schemaPanel) schemaPanel.style.display = 'none';
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('qc_user');
+            updateUserBadge();
+            alert("Logged out successfully.");
+        }
+
+        async function loadAdminData() {
+            try {
+                const usersRes = await fetch(`${API_BASE}/admin/users`);
+                const users = await usersRes.json();
+                let userHtml = '<ul>';
+                users.forEach(u => {
+                    userHtml += `<li><b>${u.username}</b> (${u.email}) - <span style="color:var(--accent-purple);">${u.role}</span></li>`;
+                });
+                userHtml += '</ul>';
+                document.getElementById('adminUserList').innerHTML = userHtml;
+
+                const metricsRes = await fetch(`${API_BASE}/admin/metrics`);
+                const metrics = await metricsRes.json();
+                document.getElementById('adminMetrics').innerHTML = `
+                    Total Registered Users: <b>${metrics.totalUsers}</b><br>
+                    Total Active Projects: <b>${metrics.totalProjects}</b><br>
+                    Server Status: <span style="color:var(--accent-green);">${metrics.status}</span>
+                `;
+            } catch (err) {
+                document.getElementById('adminUserList').innerText = 'Failed to load admin data: ' + err;
+            }
+        }
 
         async function loadProjects() {
             try {
@@ -521,6 +792,8 @@
                     <b>ID:</b> ${project.projectId}<br>
                     <b>Files Ingested:</b> ${project.ingestedFiles ? project.ingestedFiles.length : 0} files
                 `;
+                const lastUpdated = project.updatedAt || project.createdAt;
+                document.getElementById('lastUpdatedVal').innerText = formatDateTime(lastUpdated);
             } catch (err) {
                 console.error(err);
             }
@@ -570,7 +843,7 @@
                 let html = `<b>Repository Ingestion Complete!</b><br>${data.message}<br><ul>`;
                 if (data.ingestedFiles) {
                     data.ingestedFiles.forEach(f => {
-                        html += `<li>${f.fileName} (${f.chunksIngested} chunks) <a class="gcs-link" href="#">${f.gcsUri}</a></li>`;
+                        html += `<li>${f.fileName} (${f.chunksIngested} chunks) <a class="doc-link" href="#">${f.gcsUri}</a></li>`;
                     });
                 }
                 html += `</ul>`;
@@ -596,7 +869,7 @@
                     body: formData
                 });
                 const data = await res.json();
-                addChatMessage('assistant', `<b>Document Uploaded & Embedded!</b><br>${data.message}<br><a class="gcs-link" href="#">${data.gcsUri}</a>`);
+                addChatMessage('assistant', `<b>Document Uploaded & Embedded!</b><br>${data.message}<br><a class="doc-link" href="#">${data.gcsUri}</a>`);
                 onProjectChange();
             } catch (err) {
                 addChatMessage('assistant', 'Error uploading file: ' + err);
