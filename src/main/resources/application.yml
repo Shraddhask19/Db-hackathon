@@ -36,7 +36,7 @@ querycraft:
     enabled: ${GCS_ENABLED:true}
   integrations:
     github:
-      default-token: ${GITHUB_TOKEN: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}
+      default-token: ${GITHUB_TOKEN:}
     confluence:
       default-domain: ${CONFLUENCE_DOMAIN:}
       default-email: ${CONFLUENCE_EMAIL:}
